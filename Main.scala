@@ -15,9 +15,9 @@ object Main {
   var out = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB)
 
 
-  class MyRunnable(start: Int, finish: Int) extends Runnable {
+  class MyRunnable(f: Boolean, start: Int, finish: Int) extends Runnable {
     override def run() {
-      blur(photo1, true, start, finish)
+      blur(photo1, f, start, finish)
     }
   }
 
@@ -43,11 +43,20 @@ object Main {
       t1 = w
       f2 = from
       t2 = to
+    } else {
+      f1 = from
+      t1 = to
+      f2 = 0
+      t2 = h
     }
 
     for (x <- f1 until t1)
       for (y <- f2 until t2) {
-        blur_pixel(img, x, y, r);
+        if (isHoriz)
+          blur_pixel(img, x, y, r)
+        else
+          blur_pixel(img, y, x, r)
+
       }
     out
   }
@@ -61,12 +70,24 @@ object Main {
     out = photo1
 
     //blur(photo1, true, 0, h)
-    val s = 0
-    val threads =
+    val threadsH =
       for (i <- 1 to NumOfThreads)
-        yield new Thread(new MyRunnable(s + (i - 1) * (h / NumOfThreads), s + i * (h / NumOfThreads)))
-    threads.foreach(t => t.start())
-    threads.foreach(t => t.join())
+        yield new Thread(new MyRunnable(true, (i - 1) * h / NumOfThreads, math.min(i * h / NumOfThreads, h - 1)))
+    threadsH.foreach(t => t.start())
+    threadsH.foreach(t => t.join())
+    ImageIO.write(out, "jpg", new File("resultH.jpg"))
+
+
+    photo1 = ImageIO.read(new File("photo.jpg"))
+    out = photo1
+
+
+    val threadsV =
+      for (i <- 1 to NumOfThreads)
+        yield new Thread(new MyRunnable(false, (i - 1) * w / NumOfThreads, math.min(i * w / NumOfThreads, w - 1)))
+    threadsV.foreach(t => t.start())
+    threadsV.foreach(t => t.join())
+    ImageIO.write(out, "jpg", new File("resultV.jpg"))
 
     /*
     for (i <- 0 until h) {
@@ -76,6 +97,5 @@ object Main {
       thread.start
     }*/
 
-    ImageIO.write(out, "jpg", new File("result.jpg"))
   }
 }
